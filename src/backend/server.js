@@ -63,6 +63,22 @@ async function seedDefaultAdmin() {
 
 // Start API Server
 async function startServer() {
+  // Programmatically deploy SQLite database tables on boot to prevent "table does not exist" errors
+  try {
+    const { execSync } = require('child_process');
+    const { sqliteDbPath } = require('./db');
+    console.log('[DATABASE] Programmatically deploying SQLite tables...');
+    execSync('npx prisma db push --schema=prisma/schema.sqlite.prisma --accept-data-loss', {
+      env: {
+        ...process.env,
+        DATABASE_URL: `file:${sqliteDbPath}`
+      },
+      stdio: 'inherit'
+    });
+  } catch (err) {
+    console.error('[DATABASE] SQLite schema deployment warning:', err.message);
+  }
+
   await seedDefaultAdmin();
   
   const server = http.createServer(app);
