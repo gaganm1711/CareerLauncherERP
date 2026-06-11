@@ -1,0 +1,68 @@
+{
+  "name": "career-launcher-erp",
+  "version": "1.0.0",
+  "main": "src/main/index.js",
+  "description": "Premium ERP application for Career Launcher Tuition Classes",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
+    "dev:backend": "nodemon src/backend/server.js",
+    "dev:frontend": "vite --config vite.config.js",
+    "dev:electron": "wait-on http://127.0.0.1:3000 && electron .",
+    "build:frontend": "vite build --config vite.config.js",
+    "build:electron": "npm run build:frontend && electron-builder",
+    "prisma:generate": "npx prisma generate --schema=prisma/schema.sqlite.prisma && npx prisma generate --schema=prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "framer-motion": "^11.2.10",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.395.0",
+    "pg": "^8.11.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "twilio": "^5.1.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "electron": "^30.0.1",
+    "electron-builder": "^24.13.3",
+    "nodemon": "^3.1.2",
+    "postcss": "^8.4.38",
+    "prisma": "^5.14.0",
+    "tailwindcss": "^3.4.3",
+    "vite": "^5.2.11",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.careerlauncher.erp",
+    "productName": "Career Launcher ERP",
+    "win": {
+      "icon": "src/frontend/src/logo_square.png",
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Career Launcher ERP"
+    },
+    "files": [
+      "dist/**/*",
+      "src/main/**/*",
+      "src/backend/**/*",
+      "prisma/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist-electron"
+    }
+  }
+}

@@ -1,0 +1,250 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/backend/generated/sqlite-client"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   // "ADMIN" | "SUBADMIN" | "TEACHER"
+  mfaSecret    String?
+  mfaEnabled   Boolean  @default(false)
+  permissions  String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  markedAttendance        Attendance[]
+  markedTeacherAttendance TeacherAttendance[]
+  auditLogs               AuditLog[]
+  teacherProfile          Teacher?
+}
+
+model Student {
+  id               String   @id @default(uuid())
+  rollNumber       String   @unique
+  name             String
+  lastName         String?
+  email            String?
+  photo            String?  // Base64 string
+  phone            String?
+  parentName       String
+  parentPhone      String
+  status           String   @default("ACTIVE") // "ACTIVE" | "INACTIVE"
+  batchId          String?
+  batch            Batch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  fatherOccupation String?
+  motherName       String?
+  motherOccupation String?
+  dob              String?
+  gender           String?
+  bloodGroup       String?
+  category         String?
+  address          String?
+  city             String?
+  state            String?
+  pincode          String?
+  whatsapp         String?
+  schoolName       String?
+  totalCourseFee   Float    @default(0.0)
+  advancePay       Float    @default(0.0)
+  emiMonths        Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  feeRecords      FeeRecord[]
+  attendance      Attendance[]
+  examMarks       ExamMark[]
+  selectedClasses StudentSelectedClasses?
+  batchMappings   StudentBatchMapping[]
+  feePlan         FeePlan?
+  emiInstallments EMIInstallment[]
+}
+
+model Teacher {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String
+  salary    Float    @default(0.0)
+  subject   String
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  batches              Batch[]
+  teacherAttendance    TeacherAttendance[]
+  studentBatchMappings StudentBatchMapping[]
+}
+
+model Batch {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  timing        String
+  timetableJson String
+  fees          Float    @default(0.0)
+  subjects      String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  students             Student[]
+  teachers             Teacher[]
+  exams                Exam[]
+  studentBatchMappings StudentBatchMapping[]
+}
+
+model Attendance {
+  id          String   @id @default(uuid())
+  date        String   // YYYY-MM-DD
+  status      String   // "PRESENT" | "ABSENT" | "LATE"
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  markedById  String?
+  markedBy    User?    @relation(fields: [markedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([date, studentId])
+}
+
+model FeeRecord {
+  id            String   @id @default(uuid())
+  receiptNo     String   @unique
+  amountPaid    Float
+  totalAmount   Float
+  balance       Float
+  status        String   // "PAID" | "PENDING" | "PARTIAL"
+  paymentMethod String   // "CASH" | "CARD" | "UPI" | "BANK_TRANSFER"
+  paymentDate   DateTime @default(now())
+  remarks       String?
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+}
+
+model Exam {
+  id         String   @id @default(uuid())
+  name       String
+  subject    String
+  date       String
+  totalMarks Float
+  batchId    String
+  batch      Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  marks      ExamMark[]
+}
+
+model ExamMark {
+  id            String   @id @default(uuid())
+  marksObtained Float
+  remarks       String?
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  examId        String
+  exam          Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([studentId, examId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  details   String
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+model TeacherAttendance {
+  id          String   @id @default(uuid())
+  date        String
+  status      String
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  markedById  String?
+  markedBy    User?    @relation(fields: [markedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([date, teacherId])
+}
+
+model SystemSetting {
+  key   String @id
+  value String
+}
+
+model SyncDeleteLog {
+  id        String   @id @default(uuid())
+  tableName String   // Name of the table (e.g. "Student")
+  recordId  String   // ID of deleted row
+  deletedAt DateTime @default(now())
+}
+
+model StudentSelectedClasses {
+  id                 String   @id @default(uuid())
+  studentId          String   @unique
+  student            Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  selectedClasses    String   // comma-separated e.g. "8th,9th,10th"
+  currentActiveClass String
+  promotionStatus    String   @default("ACTIVE")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model StudentBatchMapping {
+  id        String   @id @default(uuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  batchId   String
+  batch     Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  teacherId String?
+  teacher   Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([studentId, batchId])
+}
+
+model FeePlan {
+  id              String   @id @default(uuid())
+  studentId       String   @unique
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  totalPackageFee Float
+  advancePaid     Float
+  remainingAmount Float
+  emiDuration     Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  emiInstallments EMIInstallment[]
+}
+
+model EMIInstallment {
+  id            String   @id @default(uuid())
+  feePlanId     String
+  feePlan       FeePlan  @relation(fields: [feePlanId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  installmentNo Int
+  amount        Float
+  dueDate       String
+  status        String   @default("UNPAID")
+  paidAmount    Float    @default(0.0)
+  paidDate      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
