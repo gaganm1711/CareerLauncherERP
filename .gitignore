@@ -2,7 +2,6 @@
 node_modules/
 
 # Production Build & Package outputs
-dist/
 dist-electron/
 build/
 out/
