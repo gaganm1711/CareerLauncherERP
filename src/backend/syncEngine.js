@@ -111,9 +111,10 @@ async function initialSeedPostgres(postgres) {
     // Delete seeded user in postgres if exists to prevent unique key conflict
     await postgres.user.deleteMany();
 
-    // 1. Copy Settings
+    // 1. Copy Settings (excluding client-specific settings)
     const settings = await sqlite.systemSetting.findMany();
     for (const item of settings) {
+      if (item.key === 'DATABASE_URL' || item.key === 'LAST_SYNC_AT') continue;
       await postgres.systemSetting.upsert({
         where: { key: item.key },
         create: item,
@@ -205,12 +206,13 @@ async function syncLoop() {
       });
     }
 
-    // 2. Sync Settings (two-way, overwrite settings)
+    // 2. Sync Settings (two-way, overwrite settings, excluding client-specific settings)
     const localSettings = await sqlite.systemSetting.findMany();
     const remoteSettings = await postgres.systemSetting.findMany();
     
     for (const lSet of localSettings) {
-      // Don't override local DB credentials or credentials stored locally
+      // Don't push local DB credentials or local sync status to Postgres
+      if (lSet.key === 'DATABASE_URL' || lSet.key === 'LAST_SYNC_AT') continue;
       const rSet = remoteSettings.find(s => s.key === lSet.key);
       if (!rSet || rSet.value !== lSet.value) {
         await postgres.systemSetting.upsert({
@@ -221,7 +223,8 @@ async function syncLoop() {
       }
     }
     for (const rSet of remoteSettings) {
-      if (rSet.key === 'DATABASE_URL') continue; // Don't pull database url
+      // Don't pull database url or another client's last sync time from Postgres
+      if (rSet.key === 'DATABASE_URL' || rSet.key === 'LAST_SYNC_AT') continue;
       const lSet = localSettings.find(s => s.key === rSet.key);
       if (!lSet || lSet.value !== rSet.value) {
         await sqlite.systemSetting.upsert({
