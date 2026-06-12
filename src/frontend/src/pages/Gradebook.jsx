@@ -368,7 +368,7 @@ export default function Gradebook({ user }) {
     return fullName.includes(query) || roll.includes(query);
   });
 
-  const metrics = calculatePerformanceMetrics();
+  const examMetrics = calculatePerformanceMetrics();
 
   return (
     <div className="space-y-6">
@@ -481,7 +481,7 @@ export default function Gradebook({ user }) {
                 <div>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Class Average</p>
                   <h4 className="text-2xl font-black text-white mt-1 font-outfit">
-                    {metrics.average} <span className="text-xs text-slate-400 font-normal">/ {examSheet.totalMarks}M</span>
+                    {examMetrics.average} <span className="text-xs text-slate-400 font-normal">/ {examSheet.totalMarks}M</span>
                   </h4>
                 </div>
                 <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400">
@@ -493,7 +493,7 @@ export default function Gradebook({ user }) {
                 <div>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Highest Marks</p>
                   <h4 className="text-2xl font-black text-emerald-400 mt-1 font-outfit">
-                    {metrics.highest} <span className="text-xs text-slate-400 font-normal">/ {examSheet.totalMarks}M</span>
+                    {examMetrics.highest} <span className="text-xs text-slate-400 font-normal">/ {examSheet.totalMarks}M</span>
                   </h4>
                 </div>
                 <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400">
@@ -505,7 +505,7 @@ export default function Gradebook({ user }) {
                 <div>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Lowest Score</p>
                   <h4 className="text-2xl font-black text-rose-400 mt-1 font-outfit">
-                    {metrics.lowest} <span className="text-xs text-slate-400 font-normal">/ {examSheet.totalMarks}M</span>
+                    {examMetrics.lowest} <span className="text-xs text-slate-400 font-normal">/ {examSheet.totalMarks}M</span>
                   </h4>
                 </div>
                 <div className="p-2.5 bg-rose-500/10 rounded-xl text-rose-400">
