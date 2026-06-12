@@ -32,9 +32,23 @@ let postgresClient = null;
 async function getPostgresClient() {
   if (postgresClient) return postgresClient;
   try {
-    const setting = await sqlite.systemSetting.findUnique({
+    let setting = await sqlite.systemSetting.findUnique({
       where: { key: 'DATABASE_URL' }
     });
+
+    // Fallback to environment variable if the setting is empty (e.g. fresh SQLite DB in container)
+    if ((!setting || !setting.value || setting.value.trim() === '') && process.env.DATABASE_URL) {
+      const envUrl = process.env.DATABASE_URL.trim();
+      if (envUrl !== '') {
+        setting = await sqlite.systemSetting.upsert({
+          where: { key: 'DATABASE_URL' },
+          create: { key: 'DATABASE_URL', value: envUrl },
+          update: { value: envUrl }
+        });
+        console.log('[DATABASE] Seeded DATABASE_URL setting from environment variable.');
+      }
+    }
+
     if (setting && setting.value && setting.value.trim() !== '') {
       postgresClient = new PostgresPrismaClient({
         datasources: {
