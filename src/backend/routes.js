@@ -1832,7 +1832,7 @@ router.post('/sync/trigger', authMiddleware(), async (req, res) => {
 // ----------------------------------------------------
 const fs = require('fs');
 const path = require('path');
-const { dbDir, sqliteDbPath } = require('./db');
+const { sqliteDbPath } = require('./db');
 
 // POST: Promote student to target batch
 router.post('/students/:id/promote', authMiddleware('students:manage'), async (req, res) => {
