@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { sqlite, getPostgresClient, resetPostgresClient } = require('./db');
+const { sqlite, getPostgresClient, resetPostgresClient, dbDir } = require('./db');
 const { authMiddleware, getJwtSecret } = require('./middleware');
 const { triggerSyncNow, getSyncState } = require('./syncEngine');
 const twilio = require('twilio');
@@ -1802,6 +1802,20 @@ router.post('/settings', authMiddleware('settings:manage'), async (req, res) => 
 // ----------------------------------------------------
 router.get('/sync/status', authMiddleware(), async (req, res) => {
   res.json(getSyncState());
+});
+
+router.get('/sync/logs', authMiddleware(), async (req, res) => {
+  try {
+    const logFile = path.join(dbDir, 'logs', 'app.log');
+    if (fs.existsSync(logFile)) {
+      const content = fs.readFileSync(logFile, 'utf8');
+      res.send(content);
+    } else {
+      res.status(404).send('Log file not found');
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post('/sync/trigger', authMiddleware(), async (req, res) => {

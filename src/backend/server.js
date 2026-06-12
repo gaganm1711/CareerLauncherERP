@@ -44,6 +44,7 @@ async function seedDefaultAdmin() {
       const passwordHash = await bcrypt.hash('admin123', 10);
       await sqlite.user.create({
         data: {
+          id: 'a7ccd336-1b49-42af-b7f9-d8c704ee9322', // Seed with fixed UUID matching remote Postgres database
           username: 'admin',
           email: 'admin@careerlauncher.com',
           name: 'Director Admin',
