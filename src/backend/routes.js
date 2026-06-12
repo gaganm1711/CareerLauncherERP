@@ -24,7 +24,7 @@ async function logAudit(userId, action, details, ipAddress = '') {
   }
 }
 
-// Helper to send SMS via Twilio
+// Helper to send SMS via Twilio (supports multiple comma/semicolon-separated numbers)
 async function sendSms(to, body) {
   try {
     const sid = await sqlite.systemSetting.findUnique({ where: { key: 'TWILIO_ACCOUNT_SID' } });
@@ -32,22 +32,44 @@ async function sendSms(to, body) {
     const from = await sqlite.systemSetting.findUnique({ where: { key: 'TWILIO_FROM_NUMBER' } });
     
     if (sid?.value && token?.value && from?.value) {
-      let formattedTo = to.trim();
-      if (/^\d{10}$/.test(formattedTo)) {
-        formattedTo = '+91' + formattedTo;
-      } else if (/^\d{12}$/.test(formattedTo)) {
-        formattedTo = '+' + formattedTo;
-      } else if (!formattedTo.startsWith('+')) {
-        formattedTo = '+91' + formattedTo;
-      }
-      
       const client = twilio(sid.value.trim(), token.value.trim());
-      const message = await client.messages.create({
-        body,
-        from: from.value.trim(),
-        to: formattedTo
-      });
-      return { success: true, messageId: message.sid };
+      
+      // Split by comma or semicolon to support multiple parent numbers
+      const numbers = to.split(/[,;]/).map(n => n.trim()).filter(n => n.length > 0);
+      if (numbers.length === 0) {
+        return { success: false, error: 'No phone numbers provided.' };
+      }
+
+      const results = [];
+      for (const num of numbers) {
+        let formattedTo = num;
+        if (/^\d{10}$/.test(formattedTo)) {
+          formattedTo = '+91' + formattedTo;
+        } else if (/^\d{12}$/.test(formattedTo)) {
+          formattedTo = '+' + formattedTo;
+        } else if (!formattedTo.startsWith('+')) {
+          formattedTo = '+91' + formattedTo;
+        }
+
+        try {
+          const message = await client.messages.create({
+            body,
+            from: from.value.trim(),
+            to: formattedTo
+          });
+          results.push({ phone: formattedTo, success: true, messageId: message.sid });
+        } catch (sendErr) {
+          console.error(`Twilio send error for ${formattedTo}:`, sendErr.message);
+          results.push({ phone: formattedTo, success: false, error: sendErr.message });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      if (successCount > 0) {
+        return { success: true, messageId: results.find(r => r.success).messageId, results };
+      } else {
+        return { success: false, error: results.map(r => `${r.phone}: ${r.error}`).join(' | '), results };
+      }
     }
     return { success: false, error: 'Twilio settings are not configured.' };
   } catch (err) {
